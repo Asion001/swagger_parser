@@ -23,8 +23,8 @@ enum EnumClass {
   valueJson('json'),
   @JsonValue('yaml')
   yaml('yaml'),
-  @JsonValue('-1')
-  valueMinus1('-1'),
+  @JsonValue(-1)
+  valueMinus1(-1),
   @JsonValue(0)
   value0(0),
   @JsonValue(1)

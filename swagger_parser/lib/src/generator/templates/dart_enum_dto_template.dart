@@ -119,7 +119,8 @@ String _enumValue(
       if (protectedJsonKey == 'null') {
         value = null;
       } else {
-        final isNumber = RegExp(r'^\d+$').hasMatch(protectedJsonKey ?? '');
+        final isNumber =
+            RegExp(r'^-?\d+(\.\d+)?$').hasMatch(protectedJsonKey ?? '');
         if (isNumber) {
           value = protectedJsonKey;
         } else {
