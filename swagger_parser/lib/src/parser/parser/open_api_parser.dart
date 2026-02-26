@@ -746,16 +746,8 @@ class OpenApiParser {
     final imports = <String>{};
 
     var requiredParameters = <String>[];
-    var hasAllOfKey = false;
     if (map case {_requiredConst: final List<dynamic> rawParameters}) {
       requiredParameters = rawParameters.map((e) => e.toString()).toList();
-    } else if (map case {_propertiesConst: final Map<String, dynamic> props}) {
-      for (final propertyName in props.keys) {
-        final propertyValue = props[propertyName] as Map<String, dynamic>;
-        if (propertyValue.containsKey(_allOfConst)) {
-          hasAllOfKey = true;
-        }
-      }
     }
 
     if (map case {_propertiesConst: final Map<String, dynamic> props}) {
@@ -797,7 +789,7 @@ class OpenApiParser {
           additionalName: additionalName,
           isRequired: (_apiInfo.schemaVersion == OAS.v2 && !config.useXNullable)
               ? isRequired
-              : isRequired || hasAllOfKey || hasDefaultKey,
+              : isRequired || hasDefaultKey,
         );
 
         var validation = propertyValue;
@@ -1604,6 +1596,9 @@ class OpenApiParser {
           (map[_typeConst] as List<dynamic>)
               .map((e) => <String, dynamic>{_typeConst: e.toString()})
               .toList();
+      final parentNullable = map[_nullableConst].toString().toBool() ??
+          map[_xNullableConst].toString().toBool() ??
+          false;
 
       UniversalType makeNullable(UniversalType type) {
         // If the type itself is a collection, make its outermost collection nullable.
@@ -1701,6 +1696,9 @@ class OpenApiParser {
               name: name,
               additionalName: additionalName,
             );
+            if (ofType != null && parentNullable) {
+              ofType = makeNullable(ofType);
+            }
           }
         }
         // Find n-element anyOf/allOf/oneOf (without discriminator) or type: [type, "null"]
@@ -1897,9 +1895,7 @@ class OpenApiParser {
           }
 
           // If the ofList contains the "null" type (or map has nullable:true), it is a nullable type
-          if (ofType != null &&
-              (nullItems.isNotEmpty ||
-                  (map[_nullableConst].toString().toBool() ?? false))) {
+          if (ofType != null && (nullItems.isNotEmpty || parentNullable)) {
             ofType = makeNullable(ofType);
           }
         }
@@ -1957,6 +1953,7 @@ class OpenApiParser {
       // or fallback to map's nullable or root/isRequired logic.
       final finalNullable = ofType?.nullable ??
           map[_nullableConst].toString().toBool() ??
+          map[_xNullableConst].toString().toBool() ??
           (root && !isRequired);
 
       final (newNameForReturn, descriptionForReturn) = protectName(
