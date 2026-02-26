@@ -1497,11 +1497,9 @@ class OpenApiParser {
           description: description,
           format: map[_formatConst]?.toString(),
           jsonKey: name,
-          defaultValue: protectDefaultValue(map[_defaultConst]),
+          defaultValue: protectDefaultValue(map[_defaultConst], isEnum: true),
           isRequired: isRequired,
-          enumType: map[_typeConst]?.toString().split(',').firstWhere(
-              (t) => t != 'null',
-              orElse: () => map[_typeConst].toString()),
+          enumType: enumClass.type,
           nullable: isEnumNullable,
           deprecated: map[_deprecatedConst].toString().toBool() ?? false,
         ),
@@ -2020,7 +2018,18 @@ class OpenApiParser {
         replacementRulesForRawSchema: config.replacementRulesForRawSchema,
       );
 
-      final enumType = defaultValue != null && import != null ? type : null;
+      var isRefToEnum = false;
+      if (map.containsKey(_refConst)) {
+        final refName = _formatRef(map);
+        final components =
+            _definitionFileContent[_componentsConst] as Map<String, dynamic>?;
+        final schemas = components?[_schemasConst] as Map<String, dynamic>?;
+        final referencedSchema = schemas?[refName] as Map<String, dynamic>?;
+        isRefToEnum = referencedSchema != null &&
+            referencedSchema.containsKey(_enumConst);
+      }
+
+      final enumType = defaultValue != null && isRefToEnum ? type : null;
 
       // For $ref types, check the referenced schema for nullable property
       var referencedNullable = false;
