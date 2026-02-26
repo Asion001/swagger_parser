@@ -868,6 +868,20 @@ void main() {
       );
     });
 
+    test('discriminator_message_type_collision', () async {
+      await e2eTest(
+        'xof/discriminator_message_type_collision',
+        (outputDirectory, schemaPath) => SWPConfig(
+          outputDirectory: outputDirectory,
+          schemaPath: schemaPath,
+          jsonSerializer: JsonSerializer.freezed,
+          putClientsInFolder: true,
+          includeIfNull: true,
+        ),
+        schemaFileName: 'discriminator_message_type_collision.json',
+      );
+    });
+
     test('fallback_union', () async {
       await e2eTest(
         'xof/fallback_union',

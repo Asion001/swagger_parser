@@ -12,6 +12,10 @@ void main(List<String> args) async {
       serializer: JsonSerializer.dartMappable,
       enumsToJson: true,
     ),
+    'discriminator_message_type_collision': TestConfig(
+      schemaFile: 'discriminator_message_type_collision.json',
+      serializer: JsonSerializer.freezed,
+    ),
     'discriminated_any_of_complete_mapping': TestConfig(
       schemaFile: 'discriminated_any_of_complete_mapping.3.1.yaml',
       serializer: JsonSerializer.freezed,

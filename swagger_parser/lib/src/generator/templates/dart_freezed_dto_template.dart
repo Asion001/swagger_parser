@@ -179,8 +179,14 @@ String _factories(UniversalComponentClass dataClass, String className,
     bool useMultipartFile, bool includeIfNull, String? fallbackUnion,
     {required bool isUnion}) {
   if (!isUnion) {
+    final constructorParams = _factoryParameterBlock(
+      dataClass.parameters,
+      useMultipartFile,
+      includeIfNull,
+    );
+
     return '''
-  const factory $className(${dataClass.parameters.isNotEmpty ? '{' : ''}${_parametersToString(dataClass.parameters, useMultipartFile, includeIfNull)}${dataClass.parameters.isNotEmpty ? '\n  }' : ''}) = _$className;''';
+  const factory $className($constructorParams) = _$className;''';
   }
 
   if (dataClass.undiscriminatedUnionVariants case final variants?
@@ -201,12 +207,20 @@ String _factories(UniversalComponentClass dataClass, String className,
     final discriminatorRef = dataClass
         .discriminator!.discriminatorValueToRefMapping[discriminatorValue]!;
     final factoryParameters =
-        dataClass.discriminator!.refProperties[discriminatorRef]!;
+      dataClass.discriminator!.refProperties[discriminatorRef]!;
+    final filteredFactoryParameters =
+      _filterOutDiscriminatorPropertyFromVariantParameters(
+        factoryParameters, dataClass.discriminator!.propertyName);
     final unionItemClassName = className + discriminatorValue.toPascal;
+    final constructorParams = _factoryParameterBlock(
+      filteredFactoryParameters,
+      useMultipartFile,
+      includeIfNull,
+    );
 
     factories.add('''
   @FreezedUnionValue('$discriminatorValue')
-  const factory $className.$factoryName(${factoryParameters.isNotEmpty ? '{' : ''}${_parametersToString(factoryParameters, useMultipartFile, includeIfNull)}${factoryParameters.isNotEmpty ? '\n  }' : ''}) = $unionItemClassName;
+  const factory $className.$factoryName($constructorParams) = $unionItemClassName;
 ''');
   }
 
@@ -223,6 +237,48 @@ String _factories(UniversalComponentClass dataClass, String className,
   return factories.join('\n');
 }
 
+Set<UniversalType> _filterOutDiscriminatorPropertyFromVariantParameters(
+  Set<UniversalType> parameters,
+  String discriminatorPropertyName,
+) {
+  var discriminatorPropertyRemoved = false;
+
+  return parameters.where((parameter) {
+    if (discriminatorPropertyRemoved) {
+      return true;
+    }
+
+    final isDiscriminatorProperty =
+        _hasExplicitDiscriminatorJsonKeyCollision(
+            parameter, discriminatorPropertyName);
+
+    if (isDiscriminatorProperty) {
+      discriminatorPropertyRemoved = true;
+      return false;
+    }
+
+    return true;
+  }).toSet();
+}
+
+bool _hasExplicitDiscriminatorJsonKeyCollision(
+  UniversalType parameter,
+  String discriminatorPropertyName,
+) {
+  final parameterJsonKey = parameter.jsonKey;
+  final parameterName = parameter.name;
+  if (parameterJsonKey == null || parameterName == null) {
+    return false;
+  }
+
+  if (parameterJsonKey == parameterName) {
+    return false;
+  }
+
+  return parameterJsonKey.toLowerCase() ==
+      discriminatorPropertyName.toLowerCase();
+}
+
 String _createFactoriesForUndiscriminatedUnion(
     String className,
     Map<String, Set<UniversalType>> variants,
@@ -234,12 +290,36 @@ String _createFactoriesForUndiscriminatedUnion(
     final (protectedName, _) = protectName(variantName, isMethod: true);
     final factoryName = protectedName!.toCamel;
     final unionItemClassName = className + variantName.toPascal;
+    final constructorParams = _factoryParameterBlock(
+      factoryParameters,
+      useMultipartFile,
+      includeIfNull,
+    );
+
     factories.add('''
   @JsonSerializable()
-  const factory $className.$factoryName(${factoryParameters.isNotEmpty ? '{' : ''}${_parametersToString(factoryParameters, useMultipartFile, includeIfNull)}${factoryParameters.isNotEmpty ? '\n  }' : ''}) = $unionItemClassName;
+  const factory $className.$factoryName($constructorParams) = $unionItemClassName;
   ''');
   }
   return factories.join('\n');
+}
+
+String _factoryParameterBlock(
+  Set<UniversalType> parameters,
+  bool useMultipartFile,
+  bool includeIfNull,
+) {
+  if (parameters.isEmpty) {
+    return '';
+  }
+
+  final parametersString = _parametersToString(
+    parameters,
+    useMultipartFile,
+    includeIfNull,
+  );
+
+  return '{$parametersString\n  }';
 }
 
 String _jsonFactories(String className,

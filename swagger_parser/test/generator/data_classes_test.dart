@@ -3114,5 +3114,65 @@ sealed class DeviceTypeConfig with _$DeviceTypeConfig {
 ''';
       expect(generated.content, expectedContents);
     });
+
+    test(
+        'freezed discriminated union omits discriminator field from variant parameters',
+        () {
+      final dataClass = UniversalComponentClass(
+        name: 'InboundWebSocketMessageUnion',
+        imports: const {},
+        parameters: const {},
+        discriminator: (
+          propertyName: 'MessageType',
+          discriminatorValueToRefMapping: const {
+            'ForceKeepAlive': '#/components/schemas/ForceKeepAlive',
+          },
+          refProperties: {
+            '#/components/schemas/ForceKeepAlive': {
+              const UniversalType(
+                type: 'string',
+                name: 'messageType',
+                jsonKey: 'MessageType',
+                isRequired: true,
+              ),
+              const UniversalType(
+                type: 'string',
+                name: 'data',
+                isRequired: true,
+              ),
+            },
+          },
+        ),
+      );
+
+      const controller = FillController(
+        config: GeneratorConfig(
+          name: '',
+          outputDirectory: '',
+          jsonSerializer: JsonSerializer.freezed,
+        ),
+      );
+
+      final generated = controller.fillDtoContent(dataClass);
+
+      const expectedContents = r'''
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'inbound_web_socket_message_union.freezed.dart';
+part 'inbound_web_socket_message_union.g.dart';
+
+@Freezed(unionKey: 'MessageType')
+sealed class InboundWebSocketMessageUnion with _$InboundWebSocketMessageUnion {
+  @FreezedUnionValue('ForceKeepAlive')
+  const factory InboundWebSocketMessageUnion.forceKeepAlive({
+    required String data,
+  }) = InboundWebSocketMessageUnionForceKeepAlive;
+
+  
+  factory InboundWebSocketMessageUnion.fromJson(Map<String, Object?> json) => _$InboundWebSocketMessageUnionFromJson(json);
+}
+''';
+      expect(generated.content, expectedContents);
+    });
   });
 }

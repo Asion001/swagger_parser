@@ -1,0 +1,73 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Discriminator MessageType Collision API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/messages": {
+      "get": {
+        "operationId": "getMessages",
+        "tags": ["messages"],
+        "responses": {
+          "200": {
+            "description": "A list of messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InboundWebSocketMessageUnion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "InboundWebSocketMessageUnion": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/ActivityLogEntryStartMessage" },
+          { "$ref": "#/components/schemas/ActivityLogEntryStopMessage" }
+        ],
+        "discriminator": {
+          "propertyName": "MessageType",
+          "mapping": {
+            "ActivityLogEntryStart": "#/components/schemas/ActivityLogEntryStartMessage",
+            "ActivityLogEntryStop": "#/components/schemas/ActivityLogEntryStopMessage"
+          }
+        }
+      },
+      "ActivityLogEntryStartMessage": {
+        "type": "object",
+        "properties": {
+          "MessageType": {
+            "type": "string",
+            "enum": ["ActivityLogEntryStart"]
+          },
+          "SessionId": {
+            "type": "string"
+          }
+        },
+        "required": ["MessageType", "SessionId"]
+      },
+      "ActivityLogEntryStopMessage": {
+        "type": "object",
+        "properties": {
+          "MessageType": {
+            "type": "string",
+            "enum": ["ActivityLogEntryStop"]
+          },
+          "DurationTicks": {
+            "type": "integer"
+          }
+        },
+        "required": ["MessageType", "DurationTicks"]
+      }
+    }
+  }
+}
